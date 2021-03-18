@@ -14,3 +14,14 @@ class Post(models.Model):
    likes = models.IntegerField(default=0)
    dislikes = models.IntegerField(default=0)
    description = models.TextField(max_length=1024, default="")
+
+
+class Like(models.Model):
+
+   owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+   post = models.ForeignKey(Post, on_delete=models.CASCADE)
+   value = models.BooleanField(null=True)
+   
+   class Meta:
+      unique_together = ('owner', 'post',)
+   
