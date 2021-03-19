@@ -18,7 +18,7 @@ from django.shortcuts import get_object_or_404
 
 class UserDetails(APIView):
 
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self, username):
         try:
@@ -34,7 +34,7 @@ class UserDetails(APIView):
 
 class PostCreateViewSet(CreateAPIView):
 
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = PostSerializer
 
     def perform_create(self, serializer):
@@ -44,7 +44,7 @@ class PostCreateViewSet(CreateAPIView):
 
 class PostViewSet(APIView):
 
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, format=None):
         posts = Post.objects.all().order_by("-likes")
@@ -54,7 +54,7 @@ class PostViewSet(APIView):
 
 class PostDetails(APIView):
 
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self, pk):
         try:
@@ -104,14 +104,14 @@ def likePost(request, post_id):
             post.save()
             return Response({"response": "deleted"})
 
-        else:  # if Like.object disliked
+        else:  # if Like.object was disliked
             post.dislikes -= 1
 
     like.value = True
     like.save()
     post.likes += 1
     post.save()
-    return Response({"response": "liked"})
+    return Response({"response": f"liked {created}"})
 
 
 @api_view(["POST"])
@@ -135,4 +135,50 @@ def dislikePost(request, post_id):
     dislike.save()
     post.dislikes += 1
     post.save()
-    return Response({"response": "disliked"})
+    return Response({"response": f"disliked {created}"})
+
+
+import datetime
+from datetime import datetime as dt
+import pytz
+
+
+class AnalyticsPost(ListAPIView):
+
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = AnalyticsPostSerializer
+    model = serializer_class.Meta.model
+    paginate_by = 100
+
+    def get_queryset(self):
+        date_from = self.request.GET["date_from"]
+        date_to = self.request.GET["date_to"]
+        posts = self.model.objects.filter(like__created__range=[date_from, date_to])
+
+        tz = pytz.timezone("UTC")
+
+        date_from = dt.strptime(date_from, "%Y-%m-%d").date()
+        date_from = dt.combine(date_from, datetime.time.min)
+        date_from = tz.localize(date_from, is_dst=True)
+
+        date_to = dt.strptime(date_to, "%Y-%m-%d").date()
+        date_to = dt.combine(date_to, datetime.time.min)
+        date_to = tz.localize(date_to, is_dst=True)
+        from django.db.models import Count, Q
+
+        posts = Post.objects.filter()
+        count_like = Count(
+            "like",
+            filter=(Q(like__created__range=[date_from, date_to]) & Q(like__value=True)),
+        )
+        count_dislike = Count(
+            "like",
+            filter=(
+                Q(like__created__range=[date_from, date_to]) & Q(like__value=False)
+            ),
+        )
+        posts = Post.objects.annotate(
+            count_like=count_like, count_dislike=count_dislike
+        ).order_by("-count_like")
+
+        return posts

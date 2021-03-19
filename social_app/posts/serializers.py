@@ -3,6 +3,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.http import HttpRequest
+from django.utils.timezone import now
 
 
 class PostSerializer(serializers.ModelSerializer):
@@ -24,18 +25,23 @@ class PostSerializer(serializers.ModelSerializer):
         lookup_url_kwarg="post_id",
     )
 
-    # post_like = serializers.HyperlinkedIdentityField(
-    #     many=False,
-    #     view_name="post-like",
-    #     lookup_url_kwarg="post_id",
-    # )
+    post_like = serializers.HyperlinkedIdentityField(
+        many=False,
+        read_only=True,
+        view_name="like-toggle",
+        lookup_url_kwarg="post_id",
+    )
+
+    post_dislike = serializers.HyperlinkedIdentityField(
+        many=False,
+        read_only=True,
+        view_name="dislike-toggle",
+        lookup_url_kwarg="post_id",
+    )
 
     id = serializers.HyperlinkedRelatedField(
         many=False, read_only=True, view_name="post-detail", lookup_url_kwarg="post_id"
     )
-
-    # likes = serializers.ReadOnlyField()
-    # dislikes = serializers.ReadOnlyField()
 
     def to_representation(self, instance):
         ret = super(PostSerializer, self).to_representation(instance)
@@ -43,6 +49,27 @@ class PostSerializer(serializers.ModelSerializer):
         if instance.creator != self.context["request"].user:
             [ret.pop(field, "") for field in fields_to_pop]
         return ret
+
+
+class AnalyticsPostSerializer(PostSerializer):
+    class Meta:
+        model = Post
+        fields = [
+            "count_like",
+            "count_dislike",
+            "creator",
+            "created",
+            "likes",
+            "dislikes",
+            "days_since_created",
+        ]
+
+    count_like = serializers.IntegerField()
+    count_dislike = serializers.IntegerField()
+    days_since_created = serializers.SerializerMethodField()
+
+    def get_days_since_created(self, obj):
+        return (now() - obj.created).days
 
 
 class UserPostsSerializer(serializers.ModelSerializer):

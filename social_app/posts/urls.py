@@ -7,6 +7,7 @@ from .views import (
     PostCreateViewSet,
     likePost,
     dislikePost,
+    AnalyticsPost,
 )
 
 
@@ -18,4 +19,5 @@ urlpatterns = [
     path("posts/create/", PostCreateViewSet.as_view(), name="post-create"),
     path("posts/<int:post_id>/like_toggle/", likePost, name="like-toggle"),
     path("posts/<int:post_id>/dislike_toggle/", dislikePost, name="dislike-toggle"),
+    path("analytics/", AnalyticsPost.as_view(), name="analytic-posts"),
 ]
