@@ -4,6 +4,7 @@ from rest_framework import routers
 from posts.views import *
 from .yasg import urlpatterns as doc_urls
 
+
 @api_view(["GET"])
 def api_root(request, format=None):
     return Response(

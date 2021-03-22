@@ -18,6 +18,12 @@ from django.contrib.auth import get_user_model
 import django.contrib.sessions.middleware
 from django.db.models import Count, Q
 
+
+import datetime
+from datetime import datetime as dt
+import pytz
+
+
 User = get_user_model()
 
 
@@ -153,11 +159,6 @@ def dislikePost(request, post_id):
     return Response({"response": f"Disliked"})
 
 
-import datetime
-from datetime import datetime as dt
-import pytz
-
-
 class AnalyticsPost(ListAPIView):
 
     permission_classes = [permissions.IsAuthenticated]
@@ -202,7 +203,6 @@ class AnalyticsPost(ListAPIView):
 
         date_from = self.request.GET.get("date_from")
         date_to = self.request.GET.get("date_to")
-        print("+++++++++", date_from, date_to)
 
         if not date_from:
             raise Http404
