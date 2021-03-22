@@ -13,7 +13,12 @@ from django.contrib.auth.models import User
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.reverse import reverse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, Http404
+from django.contrib.auth import get_user_model
+import django.contrib.sessions.middleware
+from django.db.models import Count, Q
+
+User = get_user_model()
 
 
 class UserDetails(APIView):
@@ -30,6 +35,16 @@ class UserDetails(APIView):
         user = self.get_object(username)
         serializer = UserPostsSerializer(user, context={"request": request})
         return Response(serializer.data)
+
+
+class UsersList(ListAPIView):
+
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = User.objects.all()
+    serializer_class = UsersSerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
 
 
 class PostCreateViewSet(CreateAPIView):
@@ -111,7 +126,7 @@ def likePost(request, post_id):
     like.save()
     post.likes += 1
     post.save()
-    return Response({"response": f"liked {created}"})
+    return Response({"response": f"liked"})
 
 
 @api_view(["POST"])
@@ -135,7 +150,7 @@ def dislikePost(request, post_id):
     dislike.save()
     post.dislikes += 1
     post.save()
-    return Response({"response": f"disliked {created}"})
+    return Response({"response": f"Disliked"})
 
 
 import datetime
@@ -151,8 +166,9 @@ class AnalyticsPost(ListAPIView):
     paginate_by = 100
 
     def get_queryset(self):
-        date_from = self.request.GET["date_from"]
-        date_to = self.request.GET["date_to"]
+
+        date_from, date_to = self.get_dates_or_404()
+
         posts = self.model.objects.filter(like__created__range=[date_from, date_to])
 
         tz = pytz.timezone("UTC")
@@ -164,7 +180,6 @@ class AnalyticsPost(ListAPIView):
         date_to = dt.strptime(date_to, "%Y-%m-%d").date()
         date_to = dt.combine(date_to, datetime.time.min)
         date_to = tz.localize(date_to, is_dst=True)
-        from django.db.models import Count, Q
 
         posts = Post.objects.filter()
         count_like = Count(
@@ -182,3 +197,16 @@ class AnalyticsPost(ListAPIView):
         ).order_by("-count_like")
 
         return posts
+
+    def get_dates_or_404(self):
+
+        date_from = self.request.GET.get("date_from")
+        date_to = self.request.GET.get("date_to")
+        print("+++++++++", date_from, date_to)
+
+        if not date_from:
+            raise Http404
+        if not date_to:
+            raise Http404
+
+        return date_from, date_to

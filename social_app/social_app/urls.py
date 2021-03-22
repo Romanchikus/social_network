@@ -2,11 +2,6 @@ from django.urls import include, path
 from django.contrib import admin
 from rest_framework import routers
 from posts.views import *
-from users.views import UserViewSet
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
 
 
 @api_view(["GET"])
@@ -19,8 +14,10 @@ def api_root(request, format=None):
 
 
 urlpatterns = [
-    path("", api_root),
+    path("api/", api_root),
+    path("api-auth/", include("rest_framework.urls")),
     path("auth/", include("djoser.urls")),
+    path("auth/", include("djoser.urls.jwt")),
     path("api/", include("posts.urls")),
     path("admin/", admin.site.urls),
 ]

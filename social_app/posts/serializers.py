@@ -1,9 +1,9 @@
 from .models import *
 from rest_framework import serializers
-from django.contrib.auth.models import User
 from django.urls import reverse
 from django.http import HttpRequest
 from django.utils.timezone import now
+from django.contrib.auth import get_user_model
 
 
 class PostSerializer(serializers.ModelSerializer):
@@ -72,10 +72,19 @@ class AnalyticsPostSerializer(PostSerializer):
         return (now() - obj.created).days
 
 
-class UserPostsSerializer(serializers.ModelSerializer):
+class UsersSerializer(serializers.ModelSerializer):
+
+    last_activity = serializers.DateTimeField()
+
+    class Meta:
+        model = get_user_model()
+        fields = ("username", "last_login", "last_activity")
+
+
+class UserPostsSerializer(UsersSerializer):
 
     post_set = PostSerializer(many=True)
 
     class Meta:
-        model = User
-        fields = ("username", "post_set")
+        model = get_user_model()
+        fields = ("username", "last_login", "last_activity", "post_set")
