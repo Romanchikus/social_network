@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "djoser",
     "users",
     "posts",
+    "drf_yasg",
 ]
 
 AUTH_USER_MODEL = "users.User"
@@ -126,7 +127,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = "/static/"
-
 
 REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
